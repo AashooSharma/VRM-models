@@ -1,1 +1,2 @@
 *.vrm !text !filter !merge !diff
+Wuwa/ShorekeeperV3.vrm filter=lfs diff=lfs merge=lfs -text
