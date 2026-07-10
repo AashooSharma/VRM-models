@@ -2,65 +2,127 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>VRM AI Girl - Final</title>
+<title>VRM AI Girl Collection</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: radial-gradient(circle, #0b1a1f, #020608);
-  font-family: sans-serif;
-}
-button {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  padding: 12px 18px;
-  background: #00fff2;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: bold;
-  z-index: 10;
-}
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #0b1a1f, #020608 70%);
+    font-family: 'Segoe UI', sans-serif;
+    color: #eafffe;
+  }
 
-/* CHARACTER SELECTOR UI */
-#charPanel {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
-  background: rgba(0, 20, 25, 0.75);
-  border: 1px solid #00fff2;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #00fff2;
-  backdrop-filter: blur(4px);
-}
-#charPanel label {
-  display: block;
-  font-size: 12px;
-  margin-bottom: 6px;
-  opacity: 0.8;
-}
-#charSelect {
-  width: 240px;
-  max-width: 60vw;
-  padding: 8px;
-  border-radius: 6px;
-  background: #04141a;
-  color: #00fff2;
-  border: 1px solid #00fff2;
-  font-weight: bold;
-}
-#loadingMsg {
-  margin-top: 6px;
-  font-size: 12px;
-  opacity: 0.85;
-}
+  header {
+    padding: 30px 20px 10px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 26px;
+    color: #00fff2;
+    text-shadow: 0 0 12px rgba(0,255,242,0.5);
+  }
+  header p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    opacity: 0.7;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    padding: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: linear-gradient(160deg, rgba(0,255,242,0.08), rgba(0,20,25,0.6));
+    border: 1px solid rgba(0,255,242,0.35);
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .card:hover, .card:active {
+    transform: translateY(-4px);
+    border-color: #00fff2;
+    box-shadow: 0 6px 22px rgba(0,255,242,0.25);
+  }
+  .card .avatar { font-size: 40px; margin-bottom: 8px; }
+  .card .name { font-size: 13px; font-weight: bold; color: #eafffe; word-break: break-word; }
+  .card .folder {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(0,255,242,0.15);
+    color: #00fff2;
+  }
+
+  #statusMsg { text-align: center; padding: 20px; opacity: 0.7; font-size: 13px; }
+
+  #modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,8,0.96);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+  #modal.hidden { display: none; }
+
+  #modalTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  #modalTitle { font-size: 14px; color: #00fff2; font-weight: bold; }
+  #closeBtn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  #canvasWrap { flex: 1; position: relative; }
+  #canvasWrap canvas { display: block; }
+
+  #speakBtn {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 12px 18px;
+    background: #00fff2;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    z-index: 10;
+  }
+
+  #loadingMsg {
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-size: 12px;
+    color: #00fff2;
+    opacity: 0.85;
+    z-index: 10;
+  }
 </style>
 
-<!-- IMPORT MAP -->
 <script type="importmap">
 {
 "imports": {
@@ -75,15 +137,24 @@ button {
 
 <body>
 
-<div id="charPanel">
-  <label for="charSelect">Character</label>
-  <select id="charSelect">
-    <option>Loading list...</option>
-  </select>
-  <div id="loadingMsg"></div>
-</div>
+<header>
+  <h1>💖 VRM AI Girl Collection</h1>
+  <p>Ek character choose karo, popup me use bolte/live dekho</p>
+</header>
 
-<button onclick="talk()">💖 Speak</button>
+<div id="grid"></div>
+<div id="statusMsg">Loading characters...</div>
+
+<div id="modal" class="hidden">
+  <div id="modalTop">
+    <div id="modalTitle">Character</div>
+    <button id="closeBtn">✕</button>
+  </div>
+  <div id="canvasWrap">
+    <div id="loadingMsg"></div>
+    <button id="speakBtn">💖 Speak</button>
+  </div>
+</div>
 
 
 <script type="module">
@@ -93,87 +164,19 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 
-// ================= REPO CONFIG =================
 const GITHUB_USER = "AashooSharma";
 const GITHUB_REPO = "VRM-models";
 const GITHUB_BRANCH = "main";
 
-// SCENE
-const scene = new THREE.Scene();
-
-// CAMERA
-const camera = new THREE.PerspectiveCamera(35, window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1.4, 2);
-
-// RENDERER
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.3;
-document.body.appendChild(renderer.domElement);
-
-// CONTROLS
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(0, 1.4, 0);
-controls.enableDamping = true;
-
-// LIGHT
-const light = new THREE.DirectionalLight(0xffffff, 2.5);
-light.position.set(1,2,3);
-scene.add(light);
-scene.add(new THREE.AmbientLight(0x888888));
-
-// VRM
-let currentVrm;
-
-const loader = new GLTFLoader();
-loader.register((parser) => new VRMLoaderPlugin(parser));
-
+const gridEl = document.getElementById("grid");
+const statusEl = document.getElementById("statusMsg");
+const modalEl = document.getElementById("modal");
+const modalTitleEl = document.getElementById("modalTitle");
+const closeBtnEl = document.getElementById("closeBtn");
+const canvasWrap = document.getElementById("canvasWrap");
 const loadingMsgEl = document.getElementById("loadingMsg");
-const charSelectEl = document.getElementById("charSelect");
+const speakBtnEl = document.getElementById("speakBtn");
 
-// ================= LOAD A VRM BY URL =================
-function loadVRM(url, label){
-
-  loadingMsgEl.textContent = "Loading " + (label || "model") + " ...";
-
-  loader.load(
-    url,
-    (gltf) => {
-      const vrm = gltf.userData.vrm;
-
-      VRMUtils.removeUnnecessaryVertices(gltf.scene);
-      VRMUtils.removeUnnecessaryJoints(gltf.scene);
-
-      if(currentVrm){
-        scene.remove(currentVrm.scene);
-      }
-
-      currentVrm = vrm;
-      scene.add(vrm.scene);
-
-      vrm.scene.rotation.y = Math.PI;
-
-      window.currentVrm = currentVrm;
-
-      loadingMsgEl.textContent = "Loaded: " + (label || "model");
-    },
-    (progress) => {
-      if(progress.total){
-        const pct = Math.round((progress.loaded / progress.total) * 100);
-        loadingMsgEl.textContent = "Loading " + (label || "model") + " ... " + pct + "%";
-      }
-    },
-    (err) => {
-      console.error("VRM load error:", err);
-      loadingMsgEl.textContent = "Failed to load " + (label || "model");
-    }
-  );
-}
-
-// ================= FETCH ALL .vrm FILES FROM REPO =================
 async function fetchVrmList(){
   const treeUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`;
 
@@ -191,96 +194,152 @@ async function fetchVrmList(){
 
     return vrmFiles.map(item => {
       const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${item.path}`;
-      return { path: item.path, url: rawUrl };
+      const parts = item.path.split("/");
+      const fileName = parts[parts.length - 1].replace(/\.vrm$/i, "");
+      const folder = parts.length > 1 ? parts[0] : "Root";
+      return { path: item.path, url: rawUrl, name: fileName, folder };
     });
 
   } catch(err) {
     console.error("Failed to fetch VRM list:", err);
-    loadingMsgEl.textContent = "Could not fetch character list (GitHub API limit?)";
+    statusEl.textContent = "❌ Could not fetch character list (GitHub API limit ho sakta hai)";
     return [];
   }
 }
 
-// ================= POPULATE DROPDOWN =================
-async function initCharacterSelector(){
-  const vrmList = await fetchVrmList();
+function renderGrid(list){
+  gridEl.innerHTML = "";
 
-  charSelectEl.innerHTML = "";
-
-  if(vrmList.length === 0){
-    const opt = document.createElement("option");
-    opt.textContent = "No .vrm files found";
-    charSelectEl.appendChild(opt);
+  if(list.length === 0){
+    statusEl.textContent = "Koi .vrm file nahi mili repo me.";
     return;
   }
 
-  vrmList.forEach((item, i) => {
-    const opt = document.createElement("option");
-    opt.value = item.url;
-    opt.textContent = item.path; // e.g. Genshin/lumine.vrm
-    charSelectEl.appendChild(opt);
-  });
+  statusEl.style.display = "none";
 
-  charSelectEl.addEventListener("change", () => {
-    const selected = vrmList.find(v => v.url === charSelectEl.value);
-    loadVRM(charSelectEl.value, selected ? selected.path : "model");
+  list.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="avatar">🧍‍♀️</div>
+      <div class="name">${item.name}</div>
+      <div class="folder">${item.folder}</div>
+    `;
+    card.addEventListener("click", () => openViewer(item));
+    gridEl.appendChild(card);
   });
-
-  // Load the first character by default
-  loadVRM(vrmList[0].url, vrmList[0].path);
-  charSelectEl.value = vrmList[0].url;
 }
 
-initCharacterSelector();
+let scene, camera, renderer, controls, loader;
+let currentVrm;
+let viewerReady = false;
+let clock;
 
-// CLOCK
-const clock = new THREE.Clock();
+function initViewerOnce(){
+  if(viewerReady) return;
+  viewerReady = true;
 
+  scene = new THREE.Scene();
 
-// ================= HEAD SYSTEM (FIXED FORWARD LOOK) =================
+  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000);
+  camera.position.set(0, 1.4, 2);
+
+  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.3;
+  canvasWrap.prepend(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.4, 0);
+  controls.enableDamping = true;
+
+  const light = new THREE.DirectionalLight(0xffffff, 2.5);
+  light.position.set(1,2,3);
+  scene.add(light);
+  scene.add(new THREE.AmbientLight(0x888888));
+
+  loader = new GLTFLoader();
+  loader.register((parser) => new VRMLoaderPlugin(parser));
+
+  clock = new THREE.Clock();
+
+  resizeRenderer();
+  window.addEventListener("resize", resizeRenderer);
+
+  animate();
+}
+
+function resizeRenderer(){
+  if(!renderer) return;
+  const w = canvasWrap.clientWidth || window.innerWidth;
+  const h = canvasWrap.clientHeight || window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+
+function loadVRM(url, label){
+  loadingMsgEl.textContent = "Loading " + (label || "model") + " ...";
+
+  loader.load(
+    url,
+    (gltf) => {
+      const vrm = gltf.userData.vrm;
+
+      VRMUtils.removeUnnecessaryVertices(gltf.scene);
+      VRMUtils.removeUnnecessaryJoints(gltf.scene);
+
+      if(currentVrm){
+        scene.remove(currentVrm.scene);
+      }
+
+      currentVrm = vrm;
+      scene.add(vrm.scene);
+      vrm.scene.rotation.y = Math.PI;
+
+      window.currentVrm = currentVrm;
+      loadingMsgEl.textContent = "";
+    },
+    (progress) => {
+      if(progress.total){
+        const pct = Math.round((progress.loaded / progress.total) * 100);
+        loadingMsgEl.textContent = "Loading " + (label || "model") + " ... " + pct + "%";
+      }
+    },
+    (err) => {
+      console.error("VRM load error:", err);
+      loadingMsgEl.textContent = "❌ Failed to load " + (label || "model");
+    }
+  );
+}
+
 let isTalking = false;
-
-let targetX = 0; // forward/back
-let targetZ = 0; // tilt
-let nextChangeTime = 0;
+let targetX = 0, targetZ = 0, nextChangeTime = 0;
 
 function updateHeadMovement(neck, t){
-
-  // 🔁 random tilt choose
   if(t > nextChangeTime){
-
-    targetX = (Math.random() - 0.5) * 0.35; // forward/back
-    targetZ = (Math.random() - 0.5) * 0.25; // side tilt
-
+    targetX = (Math.random() - 0.5) * 0.35;
+    targetZ = (Math.random() - 0.5) * 0.25;
     nextChangeTime = t + 2 + Math.random()*3;
   }
 
-  // 💬 talking motion (only X + Z)
-  let talkX = 0;
-  let talkZ = 0;
-
+  let talkX = 0, talkZ = 0;
   if(isTalking){
     talkX = Math.sin(t * 2) * 0.07;
     talkZ = Math.sin(t * 3) * 0.04;
   }
 
-
   const finalX = targetX + talkX;
   const finalZ = targetZ + talkZ;
 
-  // 🧠 smooth movement
   neck.rotation.x += (finalX - neck.rotation.x) * 0.05;
-
-  // ❌ REMOVE SIDE LOOK
-  neck.rotation.y += (0 - neck.rotation.y) * 0.1; // always center
-
+  neck.rotation.y += (0 - neck.rotation.y) * 0.1;
   neck.rotation.z += (finalZ - neck.rotation.z) * 0.05;
 }
 
-
-// ================= LIPSYNC =================
 function speakWithLipSync(text){
-
   const utter = new SpeechSynthesisUtterance(text);
   utter.rate = 1;
   utter.pitch = 1.1;
@@ -295,12 +354,10 @@ function speakWithLipSync(text){
 
   function animateMouth(t){
     if(!start) start = t;
-
     const time = (t - start) / 1000;
 
     if(currentVrm){
       const open = Math.abs(Math.sin(time * 8));
-
       currentVrm.expressionManager.setValue("aa", open * 1.0);
       currentVrm.expressionManager.setValue("oh", open * 0.5);
       currentVrm.expressionManager.setValue("ee", open * 0.3);
@@ -326,13 +383,10 @@ function resetMouth(){
   }
 }
 
-// BUTTON
-window.talk = function(){
+speakBtnEl.addEventListener("click", () => {
   speakWithLipSync("Hello Aashoo, main tumhare saath hoon");
-}
+});
 
-
-// ================= ANIMATION LOOP =================
 function animate(){
   requestAnimationFrame(animate);
 
@@ -345,15 +399,12 @@ function animate(){
     currentVrm.update(delta);
 
     const neck = currentVrm.humanoid.getNormalizedBoneNode("neck");
-
     if(neck){
       updateHeadMovement(neck, t);
     }
 
-    // BREATH
     currentVrm.scene.position.y = Math.sin(t * 1.5) * 0.015;
 
-    // BLINK
     const blink = (Math.sin(t * 3) + 1) / 2 > 0.97 ? 1 : 0;
     currentVrm.expressionManager.setValue("blink", blink);
   }
@@ -361,15 +412,28 @@ function animate(){
   renderer.render(scene, camera);
 }
 
-animate();
+function openViewer(item){
+  modalTitleEl.textContent = item.folder + " / " + item.name;
+  modalEl.classList.remove("hidden");
 
+  initViewerOnce();
+  resizeRenderer();
+  loadVRM(item.url, item.path);
+}
 
-// RESIZE
-window.addEventListener("resize", ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+function closeViewer(){
+  modalEl.classList.add("hidden");
+  speechSynthesis.cancel();
+  isTalking = false;
+  window.isTalking = false;
+}
+
+closeBtnEl.addEventListener("click", closeViewer);
+
+(async function init(){
+  const list = await fetchVrmList();
+  renderGrid(list);
+})();
 
 </script>
 
@@ -377,55 +441,39 @@ window.addEventListener("resize", ()=>{
 
 import * as THREE from "three";
 
-// CLOCK
 const armClock = new THREE.Clock();
 
 function updateArmIdle(vrm, t){
-
   if(!vrm) return;
 
   const humanoid = vrm.humanoid;
-
   const leftUpperArm = humanoid.getNormalizedBoneNode("leftUpperArm");
   const rightUpperArm = humanoid.getNormalizedBoneNode("rightUpperArm");
-
   const leftLowerArm = humanoid.getNormalizedBoneNode("leftLowerArm");
   const rightLowerArm = humanoid.getNormalizedBoneNode("rightLowerArm");
 
   if(leftUpperArm && rightUpperArm){
-
-    // 💖 T-pose se natural down position
     const base = 1.2;
-
-    // 💖 smooth breathing sway
     const sway = Math.sin(t * 1.4) * 0.04;
 
-    // LEFT ARM
     leftUpperArm.rotation.z = base + sway;
     leftUpperArm.rotation.x = Math.sin(t * 1.2) * 0.04;
 
-    // RIGHT ARM
     rightUpperArm.rotation.z = -base - sway;
     rightUpperArm.rotation.x = Math.sin(t * 1.2 + 1) * 0.04;
   }
 
   if(leftLowerArm && rightLowerArm){
-
-    // 💖 natural elbow bend
     leftLowerArm.rotation.x = -0.25 + Math.sin(t * 1.3) * 0.04;
     rightLowerArm.rotation.x = -0.25 + Math.sin(t * 1.3 + 1) * 0.04;
   }
 }
 
-// LOOP
 function armLoop(){
   requestAnimationFrame(armLoop);
-
   const vrm = window.currentVrm;
   if(!vrm) return;
-
   const t = armClock.getElapsedTime();
-
   updateArmIdle(vrm, t);
 }
 
@@ -440,12 +488,10 @@ import * as THREE from "three";
 
 const clock = new THREE.Clock();
 
-function updateHands(vrm, t, isTalking){
-
+function updateHands(vrm, t, talking){
   if(!vrm) return;
 
   const h = vrm.humanoid;
-
   const lUpper = h.getNormalizedBoneNode("leftUpperArm");
   const rUpper = h.getNormalizedBoneNode("rightUpperArm");
   const lLower = h.getNormalizedBoneNode("leftLowerArm");
@@ -453,17 +499,13 @@ function updateHands(vrm, t, isTalking){
 
   if(!lUpper || !rUpper) return;
 
-  // 💖 SAFE BASE (arms always down)
   const base = 1.2;
 
-  // IDLE
-  if(!isTalking){
-
+  if(!talking){
     const sway = Math.sin(t * 1.5) * 0.04;
 
     lUpper.rotation.z = base + sway;
     rUpper.rotation.z = -base - sway;
-
     lUpper.rotation.x = 0;
     rUpper.rotation.x = 0;
 
@@ -471,54 +513,35 @@ function updateHands(vrm, t, isTalking){
       lLower.rotation.x = -0.25;
       rLower.rotation.x = -0.25;
     }
-
     return;
   }
 
-  // ================= TALKING =================
-
-  // 🎯 PHASE SWITCH (gesture change every few sec)
   const phase = Math.floor(t / 2) % 3;
 
   if(phase === 0){
-    // 🤲 EXPLAIN GESTURE (forward open)
-
     lUpper.rotation.z = base - 0.3;
     rUpper.rotation.z = -base + 0.3;
-
     lUpper.rotation.x = -0.4;
     rUpper.rotation.x = -0.4;
-
     if(lLower && rLower){
       lLower.rotation.x = -1.0;
       rLower.rotation.x = -1.0;
     }
-
   } else if(phase === 1){
-    // ❤️ CHEST TOUCH (emotional)
-
     lUpper.rotation.z = -0.6;
     rUpper.rotation.z = 0.6;
-
     lUpper.rotation.x = -0.8;
     rUpper.rotation.x = -0.8;
-
     if(lLower && rLower){
       lLower.rotation.x = -1.4;
       rLower.rotation.x = -1.4;
     }
-
   } else {
-    // 💬 CASUAL TALK (natural small movement)
-
     const talk = Math.sin(t * 3) * 0.1;
-
     lUpper.rotation.z = base + talk;
     rUpper.rotation.z = -base - talk;
-
     lUpper.rotation.x = -0.2 + Math.sin(t * 2) * 0.05;
     rUpper.rotation.x = -0.2 + Math.sin(t * 2 + Math.PI) * 0.05;
-
     if(lLower && rLower){
       lLower.rotation.x = -0.6 + Math.sin(t * 2.5) * 0.1;
       rLower.rotation.x = -0.6 + Math.sin(t * 2.5 + Math.PI) * 0.1;
@@ -526,24 +549,18 @@ function updateHands(vrm, t, isTalking){
   }
 }
 
-// LOOP
 function loop(){
   requestAnimationFrame(loop);
-
   const vrm = window.currentVrm;
-  const isTalking = window.isTalking;
-
+  const talking = window.isTalking;
   if(!vrm) return;
-
   const t = clock.getElapsedTime();
-
-  updateHands(vrm, t, isTalking);
+  updateHands(vrm, t, talking);
 }
 
 loop();
 
 </script>
-
 
 </body>
 </html>
