@@ -16,6 +16,7 @@
   }
 
   header {
+    position: relative;
     padding: 30px 20px 10px;
     text-align: center;
   }
@@ -31,6 +32,24 @@
     opacity: 0.7;
   }
 
+  #uploadBtn {
+    position: absolute;
+    top: 20px;
+    right: 16px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(0,255,242,0.12);
+    border: 1px solid #00fff2;
+    color: #00fff2;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #uploadBtn:active { background: rgba(0,255,242,0.3); }
+
   #grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -44,7 +63,7 @@
     background: linear-gradient(160deg, rgba(0,255,242,0.08), rgba(0,20,25,0.6));
     border: 1px solid rgba(0,255,242,0.35);
     border-radius: 14px;
-    padding: 16px 10px;
+    padding: 10px 10px 14px;
     text-align: center;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -54,7 +73,33 @@
     border-color: #00fff2;
     box-shadow: 0 6px 22px rgba(0,255,242,0.25);
   }
-  .card .avatar { font-size: 40px; margin-bottom: 8px; }
+  .thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+  }
+  .spinner {
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(0,255,242,0.2);
+    border-top-color: #00fff2;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   .card .name { font-size: 13px; font-weight: bold; color: #eafffe; word-break: break-word; }
   .card .folder {
     display: inline-block;
@@ -138,6 +183,8 @@
 <body>
 
 <header>
+  <button id="uploadBtn" title="Upload local .vrm file">📁</button>
+  <input type="file" id="uploadInput" accept=".vrm" style="display:none">
   <h1>💖 VRM AI Girl Collection</h1>
   <p>Ek character choose karo, popup me use bolte/live dekho</p>
 </header>
@@ -167,6 +214,7 @@ import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 const GITHUB_USER = "AashooSharma";
 const GITHUB_REPO = "VRM-models";
 const GITHUB_BRANCH = "main";
+const THUMB_CACHE_PREFIX = "vrmThumb:";
 
 const gridEl = document.getElementById("grid");
 const statusEl = document.getElementById("statusMsg");
@@ -176,7 +224,10 @@ const closeBtnEl = document.getElementById("closeBtn");
 const canvasWrap = document.getElementById("canvasWrap");
 const loadingMsgEl = document.getElementById("loadingMsg");
 const speakBtnEl = document.getElementById("speakBtn");
+const uploadBtnEl = document.getElementById("uploadBtn");
+const uploadInputEl = document.getElementById("uploadInput");
 
+// ================= FETCH ALL .vrm FILES FROM REPO =================
 async function fetchVrmList(){
   const treeUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/git/trees/${GITHUB_BRANCH}?recursive=1`;
 
@@ -207,6 +258,7 @@ async function fetchVrmList(){
   }
 }
 
+// ================= RENDER GRID =================
 function renderGrid(list){
   gridEl.innerHTML = "";
 
@@ -221,15 +273,123 @@ function renderGrid(list){
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="avatar">🧍‍♀️</div>
+      <div class="thumb" id="thumb-${cssSafe(item.path)}"><div class="spinner"></div></div>
       <div class="name">${item.name}</div>
       <div class="folder">${item.folder}</div>
     `;
     card.addEventListener("click", () => openViewer(item));
     gridEl.appendChild(card);
   });
+
+  // Generate/restore thumbnails one at a time
+  generateThumbnails(list);
 }
 
+function cssSafe(str){
+  return str.replace(/[^a-zA-Z0-9]/g, "_");
+}
+
+// ================= THUMBNAIL GENERATION (static snapshot) =================
+let thumbScene, thumbCamera, thumbRenderer, thumbLoader;
+
+function initThumbRenderer(){
+  if(thumbRenderer) return;
+
+  thumbScene = new THREE.Scene();
+
+  thumbCamera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000);
+  thumbCamera.position.set(0, 1.35, 1.6);
+  thumbCamera.lookAt(0, 1.2, 0);
+
+  thumbRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  thumbRenderer.setSize(256, 256);
+  thumbRenderer.outputColorSpace = THREE.SRGBColorSpace;
+  thumbRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+  thumbRenderer.toneMappingExposure = 1.3;
+
+  const light = new THREE.DirectionalLight(0xffffff, 2.5);
+  light.position.set(1, 2, 3);
+  thumbScene.add(light);
+  thumbScene.add(new THREE.AmbientLight(0x999999));
+
+  thumbLoader = new GLTFLoader();
+  thumbLoader.register((parser) => new VRMLoaderPlugin(parser));
+}
+
+function disposeObject3D(obj){
+  obj.traverse((child) => {
+    if(child.geometry) child.geometry.dispose();
+    if(child.material){
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(m => {
+        Object.keys(m).forEach(key => {
+          if(m[key] && m[key].isTexture) m[key].dispose();
+        });
+        m.dispose();
+      });
+    }
+  });
+}
+
+function captureThumbnail(url){
+  return new Promise((resolve) => {
+    thumbLoader.load(
+      url,
+      (gltf) => {
+        const vrm = gltf.userData.vrm;
+        VRMUtils.removeUnnecessaryVertices(gltf.scene);
+        VRMUtils.removeUnnecessaryJoints(gltf.scene);
+
+        thumbScene.add(vrm.scene);
+        vrm.scene.rotation.y = Math.PI;
+
+        thumbRenderer.render(thumbScene, thumbCamera);
+        const dataUrl = thumbRenderer.domElement.toDataURL("image/jpeg", 0.82);
+
+        thumbScene.remove(vrm.scene);
+        disposeObject3D(vrm.scene);
+
+        resolve(dataUrl);
+      },
+      undefined,
+      (err) => {
+        console.error("Thumbnail generation failed:", url, err);
+        resolve(null);
+      }
+    );
+  });
+}
+
+async function generateThumbnails(list){
+  initThumbRenderer();
+
+  for(const item of list){
+    const thumbEl = document.getElementById(`thumb-${cssSafe(item.path)}`);
+    if(!thumbEl) continue;
+
+    const cacheKey = THUMB_CACHE_PREFIX + item.path;
+    let dataUrl = null;
+
+    try {
+      dataUrl = localStorage.getItem(cacheKey);
+    } catch(e){ /* localStorage unavailable */ }
+
+    if(!dataUrl){
+      dataUrl = await captureThumbnail(item.url);
+      if(dataUrl){
+        try { localStorage.setItem(cacheKey, dataUrl); } catch(e){ /* quota exceeded, ignore */ }
+      }
+    }
+
+    if(dataUrl){
+      thumbEl.innerHTML = `<img src="${dataUrl}" alt="${item.name}">`;
+    } else {
+      thumbEl.innerHTML = `<div style="font-size:32px;">🧍‍♀️</div>`;
+    }
+  }
+}
+
+// ================= MAIN VIEWER (popup) =================
 let scene, camera, renderer, controls, loader;
 let currentVrm;
 let viewerReady = false;
@@ -430,6 +590,30 @@ function closeViewer(){
 
 closeBtnEl.addEventListener("click", closeViewer);
 
+// ================= LOCAL FILE UPLOAD =================
+uploadBtnEl.addEventListener("click", () => uploadInputEl.click());
+
+let lastUploadedObjectUrl = null;
+
+uploadInputEl.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  if(lastUploadedObjectUrl){
+    URL.revokeObjectURL(lastUploadedObjectUrl);
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  lastUploadedObjectUrl = objectUrl;
+
+  const name = file.name.replace(/\.vrm$/i, "");
+
+  openViewer({ url: objectUrl, name: name, folder: "Uploaded", path: "uploaded/" + file.name });
+
+  uploadInputEl.value = "";
+});
+
+// ================= INIT =================
 (async function init(){
   const list = await fetchVrmList();
   renderGrid(list);
